@@ -1,0 +1,98 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator nestgraphql {
+  provider = "node node_modules/prisma-nestjs-graphql"
+  output   = "../src/generated/prisma-nestjs-graphql"
+  reExport = Directories
+}
+
+model Account {
+  id         Int                @id @default(autoincrement())
+  name       String             @db.VarChar(255)
+  email      String             @unique @db.VarChar(255)
+  password   String
+  salt       String
+  isVerified Boolean            @default(false)
+  groups     GroupsOnAccounts[]
+  isSupper   Boolean            @default(false)
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  isBanned   Boolean            @default(false)
+}
+
+model AccountGroup {
+  id          Int                   @id @default(autoincrement())
+  title       String                @db.VarChar(20)
+  accounts    GroupsOnAccounts[]
+  permissions PermissionsOnGroups[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model GroupsOnAccounts {
+  account   Account      @relation(fields: [accountId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  accountId Int
+  group     AccountGroup @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  groupId   Int
+  createdAt DateTime     @default(now())
+
+  @@id([accountId, groupId])
+}
+
+model PermissionsOnGroups {
+  group      AccountGroup @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  groupId    Int
+  permission Int
+  createdAt  DateTime     @default(now())
+
+  @@id([groupId, permission])
+}
+
+model User {
+  id          String       @id @default(cuid()) @db.VarChar(30)
+  email       String?      @unique @db.VarChar(255)
+  password    String?
+  salt        String?
+  isVerified  Boolean      @default(false)
+  verifyToken String?
+  facebookId  String?      @unique @db.VarChar(255)
+  googleId    String?      @unique @db.VarChar(255)
+  isBanned    Boolean      @default(false)
+  profile     UserProfile?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+enum Gender {
+  F
+  M
+  N
+}
+
+model UserProfile {
+  id        String     @id @db.VarChar(30)
+  name      String     @db.VarChar(255)
+  gender    Gender?    @default(N)
+  birthday  DateTime?
+  phone     String?
+  address   String
+  user      User       @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  photo     UserPhoto?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model UserPhoto {
+  id        String      @id @db.VarChar(30)
+  profile   UserProfile @relation(fields: [id], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  url       String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}

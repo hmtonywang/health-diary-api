@@ -1,0 +1,204 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator nestgraphql {
+  provider = "node node_modules/prisma-nestjs-graphql"
+  output = "../src/generated/prisma-nestjs-graphql"
+  reExport = Directories
+}
+
+model Account {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  name      String   @db.VarChar(255)
+  email     String   @unique @db.VarChar(255)
+  password  String
+  salt      String
+  verified  Boolean  @default(false)
+  groups    GroupsOnAccounts[]
+  isSuper  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isBanned  Boolean  @default(false)
+}
+
+model AccountGroup {
+  id        Int   @id @default(autoincrement())
+  title      String   @db.VarChar(20)
+  accounts  GroupsOnAccounts[]
+  permissions 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GroupsOnAccounts {
+  account       Account     @relation(fields: [accountId], references: [id])
+  accountId     Int
+  group   AccountGroup @relation(fields: [groupId], references: [id])
+  groupId Int
+  createdAt DateTime @default(now())
+
+  @@id([accountId, groupId])
+}
+
+model User {
+  id        String   @id @default(cuid()) @db.VarChar(30)
+  name      String   @db.VarChar(255)
+  email     String?   @unique @db.VarChar(255)
+  password  String?
+  salt      String?
+  cart      Cart?
+  orders    Order[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isBanned  Boolean  @default(false)
+}
+
+model ProductCategory {
+  id        Int   @id @default(autoincrement())
+  title      String   @db.VarChar(50)
+  products  CategoriesOnProducts[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isEnabled  Boolean  @default(false)
+}
+
+model Product {
+  id        Int   @id @default(autoincrement())
+  title      String   @db.VarChar(50)
+  description String @db.VarChar(255)
+  categories CategoriesOnProducts[]
+  specifications ProductSpecification[]
+  price  Int
+  images ProductImage[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isEnabled  Boolean  @default(false)
+}
+
+model CategoriesOnProducts {
+  product       Product     @relation(fields: [productId], references: [id])
+  productId     Int
+  category   ProductCategory @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  createdAt DateTime @default(now())
+
+  @@id([productId, categoryId])
+}
+
+model ProductImage {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  description String @db.VarChar(255)
+  filePath String
+  fileName String
+  product Product @relation(fields: [productId], references: [id])
+  productId Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductSpecification {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  title     String   @db.VarChar(50)
+  description String @db.VarChar(255)
+  images ProductSpecificationImage[]
+  inventory Int @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isEnabled  Boolean  @default(false)
+}
+
+model ProductSpecificationImage {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  description String @db.VarChar(255)
+  filePath String
+  fileName String
+  specification ProductSpecification @relation(fields: [specificationId], references: [id])
+  specificationId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductReview {
+  id Int   @id @default(autoincrement())
+  user User @relation(fields: [userId], references: [id])
+  userId String
+  product Product @relation(fields: [productId], references: [id])
+  productId Int
+  rate Int
+  comment String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id        String   @id @db.VarChar(30)
+  user      User @relation(fields: [userId], references: [id])
+  userId    String
+  cart Cart @relation(fields: [cartId], references: [id])
+  cartId String
+  status String
+  shipping Shipping @relation(fields: [shippingId], references: [id])
+  shippingId String
+  payment 
+  paymentMethod
+  paymentStatus
+  totalAmount  Int
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  invoiceId String
+  discount
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shipping {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  method    String
+  address   String
+  fee       Int
+  status    String
+}
+
+model Invoice {
+  id        String   @id @db.VarChar(30)
+  order Order @relation(fields: [orderId], references: [id])
+  orderId    String
+}
+
+model Cart {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  user   User @relation(fields: [userId], references: [id])
+  userId String  @unique @db.VarChar(30)
+  items CartItem[]
+  status String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id        String @id @default(cuid()) @db.VarChar(30)
+  cart Cart @relation(fields: [cartId], references: [id])
+  cartId String
+  product Product @relation(fields: [productId], references: [id])
+  productId Int
+  specification ProductSpecification @relation(fields: [specificationId], references: [id])
+  specificationId String
+  quantity Int
+  originalPrice Int
+  price Int
+  discount
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Discount {
+  id String @id @default(cuid()) @db.VarChar(30)
+  title String @db.VarChar(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
